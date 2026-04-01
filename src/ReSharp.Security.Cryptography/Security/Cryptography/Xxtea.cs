@@ -123,13 +123,12 @@ namespace ReSharp.Security.Cryptography
         private static byte[]? ToByteArray(uint[] data, bool includeLength)
         {
             var n = data.Length << 2;
-            if (includeLength)
-            {
+            if (includeLength) {
                 var m = (int)data[data.Length - 1];
                 n -= 4;
-                if (m < n - 3 || m > n)
+                if (m < n - 3 || m > n) {
                     return null;
-
+                }
                 n = m;
             }
 

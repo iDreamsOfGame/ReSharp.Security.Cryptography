@@ -2,7 +2,7 @@
 	"name": "io.github.idreamsofgame.resharp.security.cryptography",
 	"displayName": "ReSharp.Security.Cryptography",
 	"description": "This repository include CryptoUtility to provide cryptographic service.",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"unity": "2021.3",
 	"author": {
 		"name": "iDreamsOfGame",

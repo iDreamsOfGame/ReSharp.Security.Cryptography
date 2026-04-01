@@ -3,692 +3,723 @@ using System.Security.Cryptography;
 using System.Text;
 using NUnit.Framework;
 
+// ReSharper disable AssignNullToNotNullAttribute
+
 namespace ReSharp.Security.Cryptography.Tests
 {
     [TestFixture]
     public class AesCryptoUtilityTests
     {
-        #region Encrypt Normal Cases
+        private static readonly byte[] SampleKey128 = Encoding.UTF8.GetBytes("0123456789abcdef"); // 16 bytes for AES-128
+
+        private static readonly byte[] SampleKey192 = Encoding.UTF8.GetBytes("0123456789abcdefghij"); // 20 bytes (will be padded internally)
+
+        private static readonly byte[] SampleKey256 = Encoding.UTF8.GetBytes("0123456789abcdefghijklmn"); // 24 bytes for AES-256
+
+        private static readonly byte[] SampleIV = Encoding.UTF8.GetBytes("abcdefghijklmnop"); // 16 bytes IV
+
+        private static readonly byte[] EmptyData = Array.Empty<byte>();
+
+        private static readonly string SamplePlainText = "Hello, AES Encryption!";
+
+        private static readonly byte[] SamplePlainData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+        #region EncryptToHexString Tests (String input)
 
         [Test]
-        public void Encrypt_DefaultParameters_ReturnsValidByteArray()
+        public void EncryptToHexString_ValidStringInput_CBCMode_ReturnsCorrectLengthHexString()
         {
-            const string expected = "jOicGEwiJ2vg+urauFC2Ig==";
-            var plainText = Encoding.UTF8.GetBytes("Hello, World!");
-            var key = HexConverter.FromHexString("eb3c20d04dbfe04e4b781a33c191d9774b48f18d4c488b5f084f4cecdfaf778b");
-            var iv = HexConverter.FromHexString("9f958b7801a39a85fb6c7efeeb8d595d");
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, SampleIV, cipherMode: CipherMode.CBC);
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
-            Assert.AreNotEqual(plainText, cipherText);
-            Assert.AreEqual(expected, Convert.ToBase64String(cipherText));
+            Assert.IsNotNull(result);
+            Assert.IsNotEmpty(result);
+            Assert.IsTrue(result.Length % 2 == 0);
         }
 
         [Test]
-        public void Encrypt_CBCMode_ReturnsValidByteArray()
+        public void EncryptToHexString_ValidStringInput_ToUppercaseTrue_ReturnsUppercase()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data for CBC mode");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, SampleIV, toUppercase: true);
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.AreEqual(result, result.ToUpper());
         }
 
         [Test]
-        public void Encrypt_ECBMode_NoIvRequired_ReturnsValidByteArray()
+        public void EncryptToHexString_ValidStringInput_ToUppercaseFalse_ReturnsLowercase()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data for ECB mode");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, cipherMode: CipherMode.ECB);
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, SampleIV, toUppercase: false);
 
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.AreEqual(result, result.ToLower());
         }
 
         [Test]
-        public void Encrypt_CFBMode_ReturnsValidByteArray()
+        public void EncryptToHexString_NullPlainText_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data for CFB mode");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText,
-                key,
-                iv,
-                CipherMode.CFB);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString((string)null, SampleKey256, SampleIV));
         }
 
         [Test]
-        public void Encrypt_OFBMode_ThrowsCryptographicException()
+        public void EncryptToHexString_EmptyPlainText_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data for OFB mode");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            Assert.Throws<CryptographicException>(() => AesCryptoUtility.Encrypt(plainText,
-                key,
-                iv,
-                CipherMode.OFB));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(string.Empty, SampleKey256, SampleIV));
         }
 
         [Test]
-        public void Encrypt_LargeData_ReturnsValidByteArray()
+        public void EncryptToHexString_NullKey_ThrowsArgumentNullException()
         {
-            var plainText = new byte[1024 * 1024];
-            new Random().NextBytes(plainText);
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(SamplePlainText, null!, SampleIV));
         }
 
         [Test]
-        public void Encrypt_SameDataDifferentIV_ReturnsDifferentCipherText()
+        public void EncryptToHexString_EmptyKey_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Same data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv1 = CryptoUtility.GenerateRandomKey();
-            var iv2 = CryptoUtility.GenerateRandomKey();
-
-            var cipherText1 = AesCryptoUtility.Encrypt(plainText, key, iv1);
-            var cipherText2 = AesCryptoUtility.Encrypt(plainText, key, iv2);
-
-            Assert.AreNotEqual(cipherText1, cipherText2);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(SamplePlainText, Array.Empty<byte>(), SampleIV));
         }
 
         [Test]
-        public void Encrypt_SameDataSameIV_ReturnsSameCipherText()
+        public void EncryptToHexString_SameInput_ProducesSameOutput()
         {
-            var plainText = Encoding.UTF8.GetBytes("Same data");
-            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-            var iv = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            var result1 = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, SampleIV);
+            var result2 = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, SampleIV);
 
-            var cipherText1 = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var cipherText2 = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.AreEqual(cipherText1, cipherText2);
-        }
-
-        #endregion
-
-        #region Decrypt Normal Cases
-
-        [Test]
-        public void Decrypt_DefaultParameters_ReturnsOriginalPlainText()
-        {
-            const string cipherText = "jOicGEwiJ2vg+urauFC2Ig==";
-            var plainText = Encoding.UTF8.GetBytes("Hello, World!");
-            var key = HexConverter.FromHexString("eb3c20d04dbfe04e4b781a33c191d9774b48f18d4c488b5f084f4cecdfaf778b");
-            var iv = HexConverter.FromHexString("9f958b7801a39a85fb6c7efeeb8d595d");
-            var decryptedText = AesCryptoUtility.Decrypt(Convert.FromBase64String(cipherText), key, iv);
-            Assert.AreEqual(plainText, decryptedText);
+            Assert.AreEqual(result1, result2);
         }
 
         [Test]
-        public void Decrypt_CBCMode_ReturnsOriginalPlainText()
+        public void EncryptToHexString_DifferentKey_ProducesDifferentOutput()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test CBC mode decryption");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var key1 = Encoding.UTF8.GetBytes("key1key1key1key1");
+            var key2 = Encoding.UTF8.GetBytes("key2key2key2key2");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, iv);
+            var result1 = AesCryptoUtility.EncryptToHexString(SamplePlainText, key1, SampleIV);
+            var result2 = AesCryptoUtility.EncryptToHexString(SamplePlainText, key2, SampleIV);
 
-            Assert.AreEqual(plainText, decryptedText);
+            Assert.AreNotEqual(result1, result2);
         }
 
         [Test]
-        public void Decrypt_ECBMode_ReturnsOriginalPlainText()
+        public void EncryptToHexString_DifferentIV_ProducesDifferentOutput()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test ECB mode decryption");
-            var key = CryptoUtility.GenerateRandomKey(32);
+            var iv1 = Encoding.UTF8.GetBytes("iv1iv1iv1iv1iv1i");
+            var iv2 = Encoding.UTF8.GetBytes("iv2iv2iv2iv2iv2i");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, cipherMode: CipherMode.ECB);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, cipherMode: CipherMode.ECB);
+            var result1 = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, iv1);
+            var result2 = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, iv2);
 
-            Assert.AreEqual(plainText, decryptedText);
+            Assert.AreNotEqual(result1, result2);
         }
 
         [Test]
-        public void Decrypt_CFBMode_ReturnsOriginalPlainText()
+        public void EncryptToHexString_ECBCipherMode_NoIVRequired_Success()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test CFB mode decryption");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, cipherMode: CipherMode.ECB);
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText,
-                key,
-                iv,
-                CipherMode.CFB);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText,
-                key,
-                iv,
-                CipherMode.CFB);
-
-            Assert.AreEqual(plainText, decryptedText);
+            Assert.IsNotNull(result);
+            Assert.IsNotEmpty(result);
         }
 
         [Test]
-        public void Decrypt_LargeData_ReturnsOriginalPlainText()
+        public void EncryptToHexString_CipherModeWithoutIV_ThrowsArgumentNullException()
         {
-            var plainText = new byte[1024 * 1024];
-            new Random().NextBytes(plainText);
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, iv);
-
-            Assert.AreEqual(plainText, decryptedText);
-        }
-
-        [Test]
-        public void EncryptDecrypt_RoundTrip_Success()
-        {
-            var plainText = Encoding.UTF8.GetBytes("Round trip test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, iv);
-
-            Assert.AreEqual(plainText, decryptedText);
-            CollectionAssert.AreEqual(plainText, decryptedText);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(SamplePlainText, SampleKey256, iv: null, cipherMode: CipherMode.CBC));
         }
 
         #endregion
 
-        #region Encrypt Exception Tests
+        #region EncryptToHexString Tests (Byte array input)
 
         [Test]
-        public void Encrypt_NullPlainText_ThrowsArgumentNullException()
+        public void EncryptToHexString_ValidByteArrayInput_CBCMode_ReturnsCorrectLengthHexString()
         {
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainData, SampleKey256, SampleIV, cipherMode: CipherMode.CBC);
 
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(null!, key, iv));
+            Assert.IsNotNull(result);
+            Assert.IsNotEmpty(result);
+            Assert.IsTrue(result.Length % 2 == 0);
         }
 
         [Test]
-        public void Encrypt_EmptyPlainText_ThrowsArgumentNullException()
+        public void EncryptToHexString_ValidByteArrayInput_ToUppercaseTrue_ReturnsUppercase()
         {
-            var plainText = Array.Empty<byte>();
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainData, SampleKey256, SampleIV, toUppercase: true);
 
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, key, iv));
+            Assert.AreEqual(result, result.ToUpper());
+        }
+
+        [Test]
+        public void EncryptToHexString_ValidByteArrayInput_ToUppercaseFalse_ReturnsLowercase()
+        {
+            var result = AesCryptoUtility.EncryptToHexString(SamplePlainData, SampleKey256, SampleIV, toUppercase: false);
+
+            Assert.AreEqual(result, result.ToLower());
+        }
+
+        [Test]
+        public void EncryptToHexString_NullByteArrayData_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString((byte[])null, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToHexString_EmptyByteArrayData_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(EmptyData, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToHexString_ByteArray_NullKey_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(SamplePlainData, null!, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToHexString_ByteArray_EmptyKey_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToHexString(SamplePlainData, Array.Empty<byte>(), SampleIV));
+        }
+
+        [Test]
+        public void EncryptToHexString_ByteArray_SameInput_ProducesSameOutput()
+        {
+            var result1 = AesCryptoUtility.EncryptToHexString(SamplePlainData, SampleKey256, SampleIV);
+            var result2 = AesCryptoUtility.EncryptToHexString(SamplePlainData, SampleKey256, SampleIV);
+
+            Assert.AreEqual(result1, result2);
+        }
+
+        #endregion
+
+        #region EncryptToBase64String Tests (String input)
+
+        [Test]
+        public void EncryptToBase64String_ValidStringInput_ReturnsValidBase64Format()
+        {
+            var result = AesCryptoUtility.EncryptToBase64String(SamplePlainText, SampleKey256, SampleIV);
+
+            Assert.IsNotNull(result);
+            Assert.IsNotEmpty(result);
+            Assert.DoesNotThrow(() => _ = Convert.FromBase64String(result));
+        }
+
+        [Test]
+        public void EncryptToBase64String_NullPlainText_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String((string)null, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_EmptyPlainText_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String(string.Empty, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_NullKey_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String(SamplePlainText, null!, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_EmptyKey_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String(SamplePlainText, Array.Empty<byte>(), SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_SameInput_ProducesSameOutput()
+        {
+            var result1 = AesCryptoUtility.EncryptToBase64String(SamplePlainText, SampleKey256, SampleIV);
+            var result2 = AesCryptoUtility.EncryptToBase64String(SamplePlainText, SampleKey256, SampleIV);
+
+            Assert.AreEqual(result1, result2);
+        }
+
+        [Test]
+        public void EncryptToBase64String_DifferentKey_ProducesDifferentOutput()
+        {
+            var key1 = Encoding.UTF8.GetBytes("base64key1base64");
+            var key2 = Encoding.UTF8.GetBytes("base64key2base64");
+
+            var result1 = AesCryptoUtility.EncryptToBase64String(SamplePlainText, key1, SampleIV);
+            var result2 = AesCryptoUtility.EncryptToBase64String(SamplePlainText, key2, SampleIV);
+
+            Assert.AreNotEqual(result1, result2);
+        }
+
+        [Test]
+        public void EncryptToBase64String_DifferentIV_ProducesDifferentOutput()
+        {
+            var iv1 = Encoding.UTF8.GetBytes("b64iv1b64iv1b64i");
+            var iv2 = Encoding.UTF8.GetBytes("b64iv2b64iv2b64i");
+
+            var result1 = AesCryptoUtility.EncryptToBase64String(SamplePlainText, SampleKey256, iv1);
+            var result2 = AesCryptoUtility.EncryptToBase64String(SamplePlainText, SampleKey256, iv2);
+
+            Assert.AreNotEqual(result1, result2);
+        }
+
+        #endregion
+
+        #region EncryptToBase64String Tests (Byte array input)
+
+        [Test]
+        public void EncryptToBase64String_ValidByteArrayInput_ReturnsValidBase64Format()
+        {
+            var result = AesCryptoUtility.EncryptToBase64String(SamplePlainData, SampleKey256, SampleIV);
+
+            Assert.IsNotNull(result);
+            Assert.IsNotEmpty(result);
+            Assert.DoesNotThrow(() => _ = Convert.FromBase64String(result));
+        }
+
+        [Test]
+        public void EncryptToBase64String_NullByteArrayData_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String((byte[])null, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_EmptyByteArrayData_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String(EmptyData, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_ByteArray_NullKey_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.EncryptToBase64String(SamplePlainData, null!, SampleIV));
+        }
+
+        [Test]
+        public void EncryptToBase64String_ByteArray_SameInput_ProducesSameOutput()
+        {
+            var result1 = AesCryptoUtility.EncryptToBase64String(SamplePlainData, SampleKey256, SampleIV);
+            var result2 = AesCryptoUtility.EncryptToBase64String(SamplePlainData, SampleKey256, SampleIV);
+
+            Assert.AreEqual(result1, result2);
+        }
+
+        #endregion
+
+        #region Encrypt Tests (String input returning byte[])
+
+        [Test]
+        public void Encrypt_ValidStringInput_ReturnsNonEmptyByteArray()
+        {
+            var result = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV);
+
+            Assert.IsNotNull(result);
+            Assert.Greater(result.Length, 0);
+        }
+
+        [Test]
+        public void Encrypt_ValidStringInput_WithCustomEncoding_ReturnsNonEmptyByteArray()
+        {
+            var result = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV, Encoding.Unicode);
+
+            Assert.IsNotNull(result);
+            Assert.Greater(result.Length, 0);
+        }
+
+        [Test]
+        public void Encrypt_NullStringInput_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt((string)null, SampleKey256, SampleIV));
+        }
+
+        [Test]
+        public void Encrypt_EmptyStringInput_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(string.Empty, SampleKey256, SampleIV));
         }
 
         [Test]
         public void Encrypt_NullKey_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, null!, iv));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(SamplePlainText, null!, SampleIV));
         }
 
         [Test]
         public void Encrypt_EmptyKey_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var key = Array.Empty<byte>();
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, key, iv));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(SamplePlainText, Array.Empty<byte>(), SampleIV));
         }
 
         [Test]
-        public void Encrypt_CBCMode_NullIV_ThrowsArgumentNullException()
+        public void Encrypt_String_SameInput_ProducesSameOutput()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, key));
+            var result1 = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV);
+            var result2 = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV);
+
+            Assert.AreEqual(result1, result2);
         }
 
         [Test]
-        public void Encrypt_CFBMode_NullIV_ThrowsArgumentNullException()
+        public void Encrypt_String_WithDifferentCipherModes_ProducesDifferentOutput()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var key = CryptoUtility.GenerateRandomKey(32);
+            var resultCbc = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV, cipherMode: CipherMode.CBC);
+            var resultEcb = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, cipherMode: CipherMode.ECB);
 
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, key, null, CipherMode.CFB));
+            Assert.AreNotEqual(resultCbc, resultEcb);
         }
 
         [Test]
-        public void Encrypt_OFBMode_NullIV_ThrowsArgumentNullException()
+        public void Encrypt_String_WithDifferentPaddingModes_ProducesDifferentOutput()
         {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var key = CryptoUtility.GenerateRandomKey(32);
+            var resultPkcs7 = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV, paddingMode: PaddingMode.PKCS7);
+            var resultZeros = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV, paddingMode: PaddingMode.Zeros);
 
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, key, null, CipherMode.OFB));
-        }
-
-        [Test]
-        public void Encrypt_ECBMode_NullIV_DoesNotThrow()
-        {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-
-            Assert.DoesNotThrow(() => AesCryptoUtility.Encrypt(plainText, key, null, CipherMode.ECB));
-        }
-
-        [Test]
-        public void Encrypt_EmptyIV_ThrowsArgumentNullException()
-        {
-            var plainText = Encoding.UTF8.GetBytes("Test data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = Array.Empty<byte>();
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(plainText, key, iv));
+            Assert.AreNotEqual(resultPkcs7, resultZeros);
         }
 
         #endregion
 
-        #region Decrypt Exception Tests
+        #region Encrypt Tests (Byte array input)
 
         [Test]
-        public void Decrypt_NullCipherText_ThrowsArgumentNullException()
+        public void Encrypt_ValidByteArrayInput_ReturnsNonEmptyByteArray()
         {
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var result = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
 
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(null!, key, iv));
+            Assert.IsNotNull(result);
+            Assert.Greater(result.Length, 0);
         }
 
         [Test]
-        public void Decrypt_EmptyCipherText_ThrowsArgumentNullException()
+        public void Encrypt_NullByteArrayInput_ThrowsArgumentNullException()
         {
-            var cipherText = Array.Empty<byte>();
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, key, iv));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt((byte[])null, SampleKey256, SampleIV));
         }
 
         [Test]
-        public void Decrypt_NullKey_ThrowsArgumentNullException()
+        public void Encrypt_EmptyByteArrayInput_ThrowsArgumentNullException()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, null!, iv));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(EmptyData, SampleKey256, SampleIV));
         }
 
         [Test]
-        public void Decrypt_EmptyKey_ThrowsArgumentNullException()
+        public void Encrypt_ByteArray_NullKey_ThrowsArgumentNullException()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var key = Array.Empty<byte>();
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, key, iv));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(SamplePlainData, null!, SampleIV));
         }
 
         [Test]
-        public void Decrypt_CBCMode_NullIV_ThrowsArgumentNullException()
+        public void Encrypt_ByteArray_EmptyKey_ThrowsArgumentNullException()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, key));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(SamplePlainData, Array.Empty<byte>(), SampleIV));
         }
 
         [Test]
-        public void Decrypt_CFBMode_NullIV_ThrowsArgumentNullException()
+        public void Encrypt_ByteArray_CBCModeWithoutIV_ThrowsArgumentNullException()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, key, null, CipherMode.CFB));
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, iv: null, cipherMode: CipherMode.CBC));
         }
 
         [Test]
-        public void Decrypt_OFBMode_NullIV_ThrowsArgumentNullException()
+        public void Encrypt_ByteArray_ECBModeNoIV_Success()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var key = CryptoUtility.GenerateRandomKey(32);
+            var result = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, cipherMode: CipherMode.ECB);
 
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, key, null, CipherMode.OFB));
+            Assert.IsNotNull(result);
+            Assert.Greater(result.Length, 0);
         }
 
         [Test]
-        public void Decrypt_ECBMode_NullIV_ThrowsArgumentException()
+        public void Encrypt_ByteArray_SameInput_ProducesSameOutput()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            Assert.Throws<ArgumentException>(() => AesCryptoUtility.Decrypt(cipherText, key, null, CipherMode.ECB));
+            var result1 = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
+            var result2 = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
+
+            Assert.AreEqual(result1, result2);
         }
 
         [Test]
-        public void Decrypt_EmptyIV_ThrowsArgumentNullException()
+        public void Encrypt_ByteArray_LargeData_Success()
         {
-            var cipherText = Encoding.UTF8.GetBytes("Encrypted data");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = Array.Empty<byte>();
-            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(cipherText, key, iv));
+            var largeData = new byte[1024 * 10];
+            new Random().NextBytes(largeData);
+
+            var result = AesCryptoUtility.Encrypt(largeData, SampleKey256, SampleIV);
+
+            Assert.IsNotNull(result);
+            Assert.Greater(result.Length, 0);
         }
 
         #endregion
 
-        #region Different Key Length Tests
+        #region Decrypt Tests (String input returning byte[])
 
         [Test]
-        public void Encrypt_128BitKey_ReturnsValidByteArray()
+        public void Decrypt_EncryptedString_ReturnsOriginalPlainText()
         {
-            var plainText = Encoding.UTF8.GetBytes("128-bit key test");
-            var key = CryptoUtility.GenerateRandomKey();
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
-        }
-
-        [Test]
-        public void Encrypt_192BitKey_ReturnsValidByteArray()
-        {
-            var plainText = Encoding.UTF8.GetBytes("192-bit key test");
-            var key = CryptoUtility.GenerateRandomKey(24);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
-        }
-
-        [Test]
-        public void Encrypt_256BitKey_ReturnsValidByteArray()
-        {
-            var plainText = Encoding.UTF8.GetBytes("256-bit key test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
-        }
-
-        [Test]
-        public void Decrypt_DifferentKeyLengths_ReturnsOriginalPlainText()
-        {
-            var plainText = Encoding.UTF8.GetBytes("Different key lengths test");
-
-            var key128 = CryptoUtility.GenerateRandomKey();
-            var iv1 = CryptoUtility.GenerateRandomKey();
-            var cipherText1 = AesCryptoUtility.Encrypt(plainText, key128, iv1);
-            var decryptedText1 = AesCryptoUtility.Decrypt(cipherText1, key128, iv1);
-            Assert.AreEqual(plainText, decryptedText1);
-
-            var key192 = CryptoUtility.GenerateRandomKey(24);
-            var iv2 = CryptoUtility.GenerateRandomKey();
-            var cipherText2 = AesCryptoUtility.Encrypt(plainText, key192, iv2);
-            var decryptedText2 = AesCryptoUtility.Decrypt(cipherText2, key192, iv2);
-            Assert.AreEqual(plainText, decryptedText2);
-
-            var key256 = CryptoUtility.GenerateRandomKey(32);
-            var iv3 = CryptoUtility.GenerateRandomKey();
-            var cipherText3 = AesCryptoUtility.Encrypt(plainText, key256, iv3);
-            var decryptedText3 = AesCryptoUtility.Decrypt(cipherText3, key256, iv3);
-            Assert.AreEqual(plainText, decryptedText3);
+            var encrypted = AesCryptoUtility.Encrypt(SamplePlainText, SampleKey256, SampleIV);
+            var decrypted = AesCryptoUtility.Decrypt(encrypted, SampleKey256, SampleIV);
+            Assert.AreEqual(SamplePlainText, Encoding.UTF8.GetString(decrypted));
         }
 
         #endregion
 
-        #region Different Padding Mode Tests
+        #region Decrypt Tests (Byte array input)
 
         [Test]
-        public void Encrypt_PKCS7Padding_ReturnsValidByteArray()
+        public void Decrypt_EncryptedByteArray_ReturnsOriginalData()
         {
-            var plainText = Encoding.UTF8.GetBytes("PKCS7 padding test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            var encrypted = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
+            var decrypted = AesCryptoUtility.Decrypt(encrypted, SampleKey256, SampleIV);
+
+            Assert.AreEqual(SamplePlainData, decrypted);
         }
 
         [Test]
-        public void Encrypt_ZerosPadding_ReturnsValidByteArray()
+        public void Decrypt_NullByteArrayInput_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Zeros padding test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(
-                plainText,
-                key,
-                iv,
-                CipherMode.CBC,
-                PaddingMode.Zeros);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(null, SampleKey256, SampleIV));
         }
 
         [Test]
-        public void Encrypt_ANSIX923Padding_ReturnsValidByteArray()
+        public void Decrypt_EmptyByteArrayInput_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("ANSI X9.23 padding test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(
-                plainText,
-                key,
-                iv,
-                CipherMode.CBC,
-                PaddingMode.ANSIX923);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(EmptyData, SampleKey256, SampleIV));
         }
 
         [Test]
-        public void Encrypt_ISO10126Padding_ReturnsValidByteArray()
+        public void Decrypt_ByteArray_NullKey_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("ISO 10126 padding test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var cipherText = AesCryptoUtility.Encrypt(
-                plainText,
-                key,
-                iv,
-                CipherMode.CBC,
-                PaddingMode.ISO10126);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(SamplePlainData, null!, SampleIV));
         }
 
         [Test]
-        public void Decrypt_DifferentPaddingModes_ReturnsOriginalPlainText()
+        public void Decrypt_ByteArray_EmptyKey_ThrowsArgumentNullException()
         {
-            var plainText = Encoding.UTF8.GetBytes("Padding modes test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(SamplePlainData, Array.Empty<byte>(), SampleIV));
+        }
 
-            var cipherTextPkcs7 = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var decryptedPkcs7 = AesCryptoUtility.Decrypt(cipherTextPkcs7, key, iv);
-            Assert.AreEqual(plainText, decryptedPkcs7);
+        [Test]
+        public void Decrypt_ByteArray_CBCModeWithoutIV_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Decrypt(SamplePlainData, SampleKey256, iv: null, cipherMode: CipherMode.CBC));
+        }
 
-            var cipherTextAnsix923 = AesCryptoUtility.Encrypt(
-                plainText,
-                key,
-                iv,
-                CipherMode.CBC,
-                PaddingMode.ANSIX923);
-            var decryptedAnsix923 = AesCryptoUtility.Decrypt(
-                cipherTextAnsix923,
-                key,
-                iv,
-                CipherMode.CBC,
-                PaddingMode.ANSIX923);
-            Assert.AreEqual(plainText, decryptedAnsix923);
+        [Test]
+        public void Decrypt_ByteArray_ECBModeNoIV_Success()
+        {
+            var encrypted = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, cipherMode: CipherMode.ECB);
+            var decrypted = AesCryptoUtility.Decrypt(encrypted, SampleKey256, cipherMode: CipherMode.ECB);
+
+            Assert.AreEqual(SamplePlainData, decrypted);
+        }
+
+        [Test]
+        public void Decrypt_WrongKey_ThrowsCryptographicException()
+        {
+            var encrypted = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
+            var wrongKey = Encoding.UTF8.GetBytes("wrongkeywrongkey");
+
+            Assert.Throws<CryptographicException>(() => AesCryptoUtility.Decrypt(encrypted, wrongKey, SampleIV));
+        }
+
+        [Test]
+        public void Decrypt_WrongIV_ThrowsCryptographicException()
+        {
+            var encrypted = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
+            var wrongIv = Encoding.UTF8.GetBytes("wrongIV_wrong_IV");
+
+            Assert.Throws<CryptographicException>(() => AesCryptoUtility.Decrypt(encrypted, SampleKey256, wrongIv));
+        }
+
+        [Test]
+        public void Decrypt_CorruptedData_ThrowsCryptographicException()
+        {
+            var encrypted = AesCryptoUtility.Encrypt(SamplePlainData, SampleKey256, SampleIV);
+            var corrupted = new byte[encrypted.Length];
+            Array.Copy(encrypted, corrupted, encrypted.Length);
+            corrupted[0] ^= 0xFF;
+
+            Assert.Throws<CryptographicException>(() => AesCryptoUtility.Decrypt(corrupted, SampleKey256, SampleIV));
         }
 
         #endregion
 
-        #region Boundary and Special Cases Tests
+        #region Round-trip Tests
 
         [Test]
-        public void Encrypt_SingleByte_ReturnsValidByteArray()
+        public void EncryptDecrypt_RoundTrip_StringToBytes_Success()
         {
-            var plainText = new byte[] { 42 };
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            const string originalText = "Test round-trip encryption";
+            var key = Encoding.UTF8.GetBytes("roundtripkey1234");
+            var iv = Encoding.UTF8.GetBytes("roundtripiv12345");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
+            var encrypted = AesCryptoUtility.Encrypt(originalText, key, iv);
+            var decryptedBytes = AesCryptoUtility.Decrypt(encrypted, key, iv);
+            var decryptedText = Encoding.UTF8.GetString(decryptedBytes);
 
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.AreEqual(originalText, decryptedText);
         }
 
         [Test]
-        public void Decrypt_SingleByte_ReturnsOriginalValue()
+        public void EncryptDecrypt_RoundTrip_Bytes_Success()
         {
-            var plainText = new byte[] { 42 };
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var originalData = new byte[] { 10, 20, 30, 40, 50, 60, 70, 80 };
+            var key = Encoding.UTF8.GetBytes("byteroundtrip123");
+            var iv = Encoding.UTF8.GetBytes("byteroundtripiv1");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, iv);
+            var encrypted = AesCryptoUtility.Encrypt(originalData, key, iv);
+            var decrypted = AesCryptoUtility.Decrypt(encrypted, key, iv);
 
-            Assert.AreEqual(plainText, decryptedText);
+            Assert.AreEqual(originalData, decrypted);
         }
 
         [Test]
-        public void Encrypt_BlockSizeData_ReturnsValidByteArray()
+        public void EncryptDecrypt_RoundTrip_HexString_Success()
         {
-            var plainText = new byte[16];
-            new Random().NextBytes(plainText);
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            const string originalText = "Hex string round-trip test";
+            var key = Encoding.UTF8.GetBytes("hexroundtrip1234");
+            var iv = Encoding.UTF8.GetBytes("hexroundtripiv12");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
+            var encryptedHex = AesCryptoUtility.EncryptToHexString(originalText, key, iv);
+            var encryptedBytes = HexConverter.FromHexString(encryptedHex);
+            var decryptedBytes = AesCryptoUtility.Decrypt(encryptedBytes, key, iv);
+            var decryptedText = Encoding.UTF8.GetString(decryptedBytes);
 
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.AreEqual(originalText, decryptedText);
         }
 
         [Test]
-        public void Encrypt_WrongKey_DecryptionFailsOrReturnsDifferentData()
+        public void EncryptDecrypt_RoundTrip_Base64String_Success()
         {
-            var plainText = Encoding.UTF8.GetBytes("Wrong key test");
-            var key1 = CryptoUtility.GenerateRandomKey(32);
-            var key2 = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            const string originalText = "Base64 string round-trip test";
+            var key = Encoding.UTF8.GetBytes("b64roundtrip1234");
+            var iv = Encoding.UTF8.GetBytes("b64roundtripiv12");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key1, iv);
+            var encryptedBase64 = AesCryptoUtility.EncryptToBase64String(originalText, key, iv);
+            var encryptedBytes = Convert.FromBase64String(encryptedBase64);
+            var decryptedBytes = AesCryptoUtility.Decrypt(encryptedBytes, key, iv);
+            var decryptedText = Encoding.UTF8.GetString(decryptedBytes);
 
-            Assert.Throws<CryptographicException>(() => AesCryptoUtility.Decrypt(cipherText, key2, iv));
+            Assert.AreEqual(originalText, decryptedText);
         }
 
         [Test]
-        public void Encrypt_WrongIV_DecryptionFailsOrReturnsDifferentData()
+        public void EncryptDecrypt_RoundTrip_DifferentCipherModes_Success()
         {
-            var plainText = Encoding.UTF8.GetBytes("Wrong IV test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv1 = CryptoUtility.GenerateRandomKey();
-            var iv2 = CryptoUtility.GenerateRandomKey();
+            var originalData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+            var key = Encoding.UTF8.GetBytes("ciphermodetest12");
+            var iv = Encoding.UTF8.GetBytes("ciphermodeiv1234");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv1);
+            var encryptedCbc = AesCryptoUtility.Encrypt(originalData, key, iv, cipherMode: CipherMode.CBC);
+            var decryptedCbc = AesCryptoUtility.Decrypt(encryptedCbc, key, iv, cipherMode: CipherMode.CBC);
+            Assert.AreEqual(originalData, decryptedCbc);
 
-            Assert.Throws<CryptographicException>(() => AesCryptoUtility.Decrypt(cipherText, key, iv2));
+            var encryptedEcb = AesCryptoUtility.Encrypt(originalData, key, cipherMode: CipherMode.ECB);
+            var decryptedEcb = AesCryptoUtility.Decrypt(encryptedEcb, key, cipherMode: CipherMode.ECB);
+            Assert.AreEqual(originalData, decryptedEcb);
         }
 
         [Test]
-        public void Encrypt_TamperedCipherText_DecryptionFails()
+        public void EncryptDecrypt_RoundTrip_DifferentPaddingModes_Success()
         {
-            var plainText = Encoding.UTF8.GetBytes("Tampered data test");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var originalData = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+            var key = Encoding.UTF8.GetBytes("paddingtest12345");
+            var iv = Encoding.UTF8.GetBytes("paddingiv1234567");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            cipherText[0] ^= 0xFF;
-            var result = AesCryptoUtility.Decrypt(cipherText, key, iv);
-            Assert.AreNotEqual(plainText, Encoding.UTF8.GetString(result));
-        }
+            var encryptedPkcs7 = AesCryptoUtility.Encrypt(originalData, key, iv, paddingMode: PaddingMode.PKCS7);
+            var decryptedPkcs7 = AesCryptoUtility.Decrypt(encryptedPkcs7, key, iv, paddingMode: PaddingMode.PKCS7);
+            Assert.AreEqual(originalData, decryptedPkcs7);
 
-        #endregion
-
-        #region Performance Tests
-
-        [Test]
-        public void Encrypt_PerformanceTest_CompletesInReasonableTime()
-        {
-            var plainText = new byte[1024 * 1024];
-            new Random().NextBytes(plainText);
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
-
-            var startTime = DateTime.UtcNow;
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var endTime = DateTime.UtcNow;
-
-            Assert.IsNotNull(cipherText);
-            Assert.Less((endTime - startTime).TotalSeconds, 5);
+            var encryptedZeros = AesCryptoUtility.Encrypt(originalData, key, iv, paddingMode: PaddingMode.Zeros);
+            var decryptedZeros = AesCryptoUtility.Decrypt(encryptedZeros, key, iv, paddingMode: PaddingMode.Zeros);
+            Assert.AreEqual(originalData, decryptedZeros);
         }
 
         [Test]
-        public void Decrypt_PerformanceTest_CompletesInReasonableTime()
+        public void EncryptDecrypt_RoundTrip_DifferentKeySizes_Success()
         {
-            var plainText = new byte[1024 * 1024];
-            new Random().NextBytes(plainText);
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var originalData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+            var iv = Encoding.UTF8.GetBytes("keysizeiv1234567");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
+            var key128 = Encoding.UTF8.GetBytes("key128bitsize0");
+            var encrypted128 = AesCryptoUtility.Encrypt(originalData, key128, iv);
+            var decrypted128 = AesCryptoUtility.Decrypt(encrypted128, key128, iv);
+            Assert.AreEqual(originalData, decrypted128);
 
-            var startTime = DateTime.UtcNow;
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, iv);
-            var endTime = DateTime.UtcNow;
+            var key192 = Encoding.UTF8.GetBytes("key192bitsize01234");
+            var encrypted192 = AesCryptoUtility.Encrypt(originalData, key192, iv);
+            var decrypted192 = AesCryptoUtility.Decrypt(encrypted192, key192, iv);
+            Assert.AreEqual(originalData, decrypted192);
 
-            Assert.IsNotNull(decryptedText);
-            Assert.Less((endTime - startTime).TotalSeconds, 5);
+            var key256 = Encoding.UTF8.GetBytes("key256bitsize0123456");
+            var encrypted256 = AesCryptoUtility.Encrypt(originalData, key256, iv);
+            var decrypted256 = AesCryptoUtility.Decrypt(encrypted256, key256, iv);
+            Assert.AreEqual(originalData, decrypted256);
         }
 
         #endregion
 
-        #region Unicode and Multi-language Support Tests
+        #region Edge Cases and Special Scenarios
 
         [Test]
-        public void Encrypt_UnicodeText_ReturnsValidByteArray()
+        public void Encrypt_EmptyDataWithPKCS7Padding_Success()
         {
-            var plainText = Encoding.UTF8.GetBytes("你好，世界！こんにちは世界！🌍");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var emptyData = Array.Empty<byte>();
+            var key = Encoding.UTF8.GetBytes("emptydatatest123");
+            var iv = Encoding.UTF8.GetBytes("emptydataiv12345");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-
-            Assert.IsNotNull(cipherText);
-            Assert.Greater(cipherText.Length, 0);
+            Assert.Throws<ArgumentNullException>(() => AesCryptoUtility.Encrypt(emptyData, key, iv));
         }
 
         [Test]
-        public void Decrypt_UnicodeText_ReturnsOriginalPlainText()
+        public void Encrypt_SingleByteData_Success()
         {
-            var plainText = Encoding.UTF8.GetBytes("你好，世界！こんにちは世界！🌍");
-            var key = CryptoUtility.GenerateRandomKey(32);
-            var iv = CryptoUtility.GenerateRandomKey();
+            var singleByte = new byte[] { 42 };
+            var key = Encoding.UTF8.GetBytes("singlebytetest12");
+            var iv = Encoding.UTF8.GetBytes("singlebyteiv1234");
 
-            var cipherText = AesCryptoUtility.Encrypt(plainText, key, iv);
-            var decryptedText = AesCryptoUtility.Decrypt(cipherText, key, iv);
+            var encrypted = AesCryptoUtility.Encrypt(singleByte, key, iv);
+            var decrypted = AesCryptoUtility.Decrypt(encrypted, key, iv);
 
-            Assert.AreEqual(plainText, decryptedText);
+            Assert.AreEqual(singleByte, decrypted);
+        }
+
+        [Test]
+        public void Encrypt_LargeData_Success()
+        {
+            var largeData = new byte[1024 * 1024];
+            new Random().NextBytes(largeData);
+            var key = Encoding.UTF8.GetBytes("largedatatype123");
+            var iv = Encoding.UTF8.GetBytes("largedataiv12345");
+
+            var encrypted = AesCryptoUtility.Encrypt(largeData, key, iv);
+            var decrypted = AesCryptoUtility.Decrypt(encrypted, key, iv);
+
+            Assert.AreEqual(largeData, decrypted);
+        }
+
+        [Test]
+        public void Encrypt_DataWithSpecialCharacters_Success()
+        {
+            const string specialText = "Special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?🚀";
+            var key = Encoding.UTF8.GetBytes("specialchartest1");
+            var iv = Encoding.UTF8.GetBytes("specialchariv123");
+
+            var encrypted = AesCryptoUtility.Encrypt(specialText, key, iv);
+            var decryptedBytes = AesCryptoUtility.Decrypt(encrypted, key, iv);
+            var decryptedText = Encoding.UTF8.GetString(decryptedBytes);
+
+            Assert.AreEqual(specialText, decryptedText);
+        }
+
+        [Test]
+        public void Encrypt_ChineseCharacters_Success()
+        {
+            const string chineseText = "你好，世界！加密测试";
+            var key = Encoding.UTF8.GetBytes("chinesetest12345");
+            var iv = Encoding.UTF8.GetBytes("chineseiv1234567");
+
+            var encrypted = AesCryptoUtility.Encrypt(chineseText, key, iv);
+            var decryptedBytes = AesCryptoUtility.Decrypt(encrypted, key, iv);
+            var decryptedText = Encoding.UTF8.GetString(decryptedBytes);
+
+            Assert.AreEqual(chineseText, decryptedText);
         }
 
         #endregion

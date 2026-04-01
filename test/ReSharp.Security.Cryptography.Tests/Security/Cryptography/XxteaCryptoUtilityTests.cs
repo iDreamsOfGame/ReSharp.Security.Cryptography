@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 
@@ -448,6 +449,209 @@ namespace ReSharp.Security.Cryptography.Tests
             var expectedHex = HexConverter.ToHexString(cipherText);
             Assert.IsNotNull(expectedHex);
             Assert.Greater(expectedHex.Length, 0);
+        }
+
+        #endregion
+
+        #region EncryptToHexString Tests
+
+        [Test]
+        public void EncryptToHexString_ByteArray_ReturnsValidHexString()
+        {
+            var plainData = Encoding.UTF8.GetBytes("Hello, World!");
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var hexString = XxteaCryptoUtility.EncryptToHexString(plainData, key);
+            
+            Assert.IsNotNull(hexString);
+            Assert.Greater(hexString.Length, 0);
+            Assert.IsTrue(IsValidHexString(hexString));
+        }
+
+        [Test]
+        public void EncryptToHexString_ByteArray_LowerCase_ReturnsValidHexString()
+        {
+            var plainData = Encoding.UTF8.GetBytes("Hello, World!");
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var hexString = XxteaCryptoUtility.EncryptToHexString(plainData, key, false);
+            
+            Assert.IsNotNull(hexString);
+            Assert.Greater(hexString.Length, 0);
+            Assert.IsTrue(IsValidHexString(hexString));
+            Assert.AreEqual(hexString, hexString.ToLower());
+        }
+
+        [Test]
+        public void EncryptToHexString_String_ReturnsValidHexString()
+        {
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var hexString = XxteaCryptoUtility.EncryptToHexString("Hello, World!", key);
+            
+            Assert.IsNotNull(hexString);
+            Assert.Greater(hexString.Length, 0);
+            Assert.IsTrue(IsValidHexString(hexString));
+        }
+
+        [Test]
+        public void EncryptToHexString_String_WithEncoding_ReturnsValidHexString()
+        {
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var hexString = XxteaCryptoUtility.EncryptToHexString("Hello, World!", key, Encoding.UTF8);
+            
+            Assert.IsNotNull(hexString);
+            Assert.Greater(hexString.Length, 0);
+            Assert.IsTrue(IsValidHexString(hexString));
+        }
+
+        [Test]
+        public void EncryptToHexString_RoundTrip_Verification()
+        {
+            var plainText = "Round trip with hex string";
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var hexString = XxteaCryptoUtility.EncryptToHexString(plainText, key);
+            var cipherData = HexConverter.FromHexString(hexString);
+            var decryptedData = XxteaCryptoUtility.Decrypt(cipherData, key);
+            var decryptedText = Encoding.UTF8.GetString(decryptedData);
+            
+            Assert.AreEqual(plainText, decryptedText);
+        }
+
+        #endregion
+
+        #region EncryptToBase64String Tests
+
+        [Test]
+        public void EncryptToBase64String_ByteArray_ReturnsValidBase64String()
+        {
+            var plainData = Encoding.UTF8.GetBytes("Hello, World!");
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var base64String = XxteaCryptoUtility.EncryptToBase64String(plainData, key);
+            
+            Assert.IsNotNull(base64String);
+            Assert.Greater(base64String.Length, 0);
+            Assert.IsTrue(IsValidBase64String(base64String));
+        }
+
+        [Test]
+        public void EncryptToBase64String_String_ReturnsValidBase64String()
+        {
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var base64String = XxteaCryptoUtility.EncryptToBase64String("Hello, World!", key);
+            
+            Assert.IsNotNull(base64String);
+            Assert.Greater(base64String.Length, 0);
+            Assert.IsTrue(IsValidBase64String(base64String));
+        }
+
+        [Test]
+        public void EncryptToBase64String_String_WithEncoding_ReturnsValidBase64String()
+        {
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var base64String = XxteaCryptoUtility.EncryptToBase64String("Hello, World!", key, Encoding.UTF8);
+            
+            Assert.IsNotNull(base64String);
+            Assert.Greater(base64String.Length, 0);
+            Assert.IsTrue(IsValidBase64String(base64String));
+        }
+
+        [Test]
+        public void EncryptToBase64String_RoundTrip_Verification()
+        {
+            var plainText = "Round trip with base64 string";
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var base64String = XxteaCryptoUtility.EncryptToBase64String(plainText, key);
+            var cipherData = Convert.FromBase64String(base64String);
+            var decryptedData = XxteaCryptoUtility.Decrypt(cipherData, key);
+            var decryptedText = Encoding.UTF8.GetString(decryptedData);
+            
+            Assert.AreEqual(plainText, decryptedText);
+        }
+
+        #endregion
+
+        #region String Encrypt/Decrypt Tests
+
+        [Test]
+        public void Encrypt_String_ReturnsValidByteArray()
+        {
+            var plainText = "Hello, World!";
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var cipherData = XxteaCryptoUtility.Encrypt(plainText, key);
+            
+            Assert.IsNotNull(cipherData);
+            Assert.Greater(cipherData.Length, 0);
+        }
+
+        [Test]
+        public void Encrypt_String_WithCustomEncoding_ReturnsValidByteArray()
+        {
+            var plainText = "Hello, World!";
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            var cipherData = XxteaCryptoUtility.Encrypt(plainText, key, Encoding.Unicode);
+            
+            Assert.IsNotNull(cipherData);
+            Assert.Greater(cipherData.Length, 0);
+        }
+
+        [Test]
+        public void Decrypt_String_WithCustomEncoding_ReturnsOriginalPlainText()
+        {
+            const string plainText = "Hello, World!";
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            var encoding = Encoding.Unicode;
+            var cipherData = XxteaCryptoUtility.Encrypt(plainText, key, encoding);
+            var cipherText = encoding.GetString(cipherData);
+            var decryptedData = XxteaCryptoUtility.Decrypt(cipherText, key, encoding);
+            var decryptedText = encoding.GetString(decryptedData);
+            
+            Assert.AreEqual(plainText, decryptedText);
+        }
+
+        [Test]
+        public void Decrypt_String_NullOrEmpty_ThrowsArgumentNullException()
+        {
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            
+            Assert.Throws<ArgumentNullException>(() => XxteaCryptoUtility.Decrypt(null, key));
+            Assert.Throws<ArgumentNullException>(() => XxteaCryptoUtility.Decrypt(string.Empty, key));
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private static bool IsValidHexString(string hexString)
+        {
+            if (string.IsNullOrEmpty(hexString) || hexString.Length % 2 != 0)
+                return false;
+
+            return hexString.All(c => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+        }
+
+        private static bool IsValidBase64String(string base64String)
+        {
+            if (string.IsNullOrEmpty(base64String))
+                return false;
+
+            try
+            {
+                _ = Convert.FromBase64String(base64String);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         #endregion
