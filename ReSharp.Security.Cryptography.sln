@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReSharp.Security.Cryptography", "src\ReSharp.Security.Cryptography\ReSharp.Security.Cryptography.csproj", "{54463E1A-D63E-472D-A707-A4BCA8056B5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReSharp.Security.Cryptography.Tests", "test\ReSharp.Security.Cryptography.Tests\ReSharp.Security.Cryptography.Tests.csproj", "{0B30494C-BCE7-4FDB-95E5-181AAFE0F8A9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4401FC10-41FF-4830-B2AC-6048D6390D48}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1371705E-B50D-4938-890E-51EFCFC14C1F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{54463E1A-D63E-472D-A707-A4BCA8056B5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54463E1A-D63E-472D-A707-A4BCA8056B5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54463E1A-D63E-472D-A707-A4BCA8056B5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54463E1A-D63E-472D-A707-A4BCA8056B5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B30494C-BCE7-4FDB-95E5-181AAFE0F8A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B30494C-BCE7-4FDB-95E5-181AAFE0F8A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B30494C-BCE7-4FDB-95E5-181AAFE0F8A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B30494C-BCE7-4FDB-95E5-181AAFE0F8A9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{54463E1A-D63E-472D-A707-A4BCA8056B5A} = {4401FC10-41FF-4830-B2AC-6048D6390D48}
+		{0B30494C-BCE7-4FDB-95E5-181AAFE0F8A9} = {1371705E-B50D-4938-890E-51EFCFC14C1F}
+	EndGlobalSection
+EndGlobal

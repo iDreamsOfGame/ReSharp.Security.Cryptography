@@ -1,0 +1,18 @@
+{
+	"name": "io.github.idreamsofgame.resharp.security.cryptography",
+	"displayName": "ReSharp.Security.Cryptography",
+	"description": "This repository include CryptoUtility to provide cryptographic service.",
+	"version": "1.0.0",
+	"unity": "2021.3",
+	"author": {
+		"name": "iDreamsOfGame",
+		"url": "https://github.com/iDreamsOfGame"
+	},
+	"license": "MIT",
+	"dependencies": {
+        "org.nuget.bouncycastle.cryptography": "2.6.2"
+    },
+    "publishConfig": {
+        "registry": "https://package.openupm.com"
+    }
+}

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+
+        <IsPackable>false</IsPackable>
+
+        <TargetFrameworks>netstandard2.1;net461</TargetFrameworks>
+
+        <LangVersion>8</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NUnit" Version="3.13.3" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\ReSharp.Security.Cryptography\ReSharp.Security.Cryptography.csproj" />
+    </ItemGroup>
+
+</Project>
