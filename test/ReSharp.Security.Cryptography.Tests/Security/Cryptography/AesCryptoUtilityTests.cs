@@ -22,7 +22,7 @@ namespace ReSharp.Security.Cryptography.Tests
 
         private static readonly string SamplePlainText = "Hello, AES Encryption!";
 
-        private static readonly byte[] SamplePlainData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        private static readonly byte[] SamplePlainData = { 1, 2, 3, 4, 5, 6, 7, 8 };
 
         #region EncryptToHexString Tests (String input)
 
